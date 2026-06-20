@@ -1,8 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
-const fs = require("fs");
-const os = require("os");
 
 const mergeRoutes = require("./routes/merge");
 
@@ -10,30 +7,14 @@ const app = express();
 const PORT = 4000;
 
 // ---------------------------------------------------------------------------
-// Ensure required directories exist on startup (using temp directory for Vercel/serverless support)
-// ---------------------------------------------------------------------------
-const uploadsDir = path.join(os.tmpdir(), "pdf-merger-uploads");
-const mergedDir = path.join(os.tmpdir(), "pdf-merger-merged");
-
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-if (!fs.existsSync(mergedDir)) fs.mkdirSync(mergedDir, { recursive: true });
-
-// ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
 
-// Allow requests from the Vite dev server
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-  })
-);
+// Allow cross-origin requests
+app.use(cors());
 
 // Parse JSON request bodies
 app.use(express.json());
-
-// Serve merged PDF files as static downloads
-app.use("/downloads", express.static(mergedDir));
 
 // ---------------------------------------------------------------------------
 // Routes

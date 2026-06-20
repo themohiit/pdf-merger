@@ -7,5 +7,12 @@
     "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
     "start:backend": "npm start --prefix backend",
     "start:frontend": "npm run dev --prefix frontend"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "multer": "^2.2.0",
+    "pdf-lib": "^1.17.1",
+    "uuid": "^14.0.1"
   }
 }

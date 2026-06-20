@@ -1,15 +1,8 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs/promises");
-const os = require("os");
 const { PDFDocument } = require("pdf-lib");
-const { v4: uuidv4 } = require("uuid");
 
 const router = express.Router();
-
-const uploadsDir = path.join(os.tmpdir(), "pdf-merger-uploads");
-const mergedDir = path.join(os.tmpdir(), "pdf-merger-merged");
 
 // ---------------------------------------------------------------------------
 // Multer configuration – disk storage, 50 MB limit, PDF-only filter
