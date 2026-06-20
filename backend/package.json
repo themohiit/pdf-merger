@@ -4,7 +4,7 @@
   "description": "Express.js backend for PDF Merger web application",
   "main": "server.js",
   "scripts": {
-    "build": "echo 'No build required for backend'",
+    "build": "npm install && echo 'No build required for backend'",
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
