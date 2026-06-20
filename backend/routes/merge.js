@@ -16,6 +16,10 @@ const mergedDir = path.join(os.tmpdir(), "pdf-merger-merged");
 // ---------------------------------------------------------------------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    const fsSync = require("fs");
+    if (!fsSync.existsSync(uploadsDir)) {
+      fsSync.mkdirSync(uploadsDir, { recursive: true });
+    }
     cb(null, uploadsDir);
   },
   filename: (_req, file, cb) => {
@@ -141,6 +145,10 @@ router.post("/merge", upload.array("files", 20), async (req, res, next) => {
     // ----- Save merged PDF -----------------------------------------------
     const mergedBytes = await mergedPdf.save();
     const outputName = `${uuidv4()}.pdf`;
+    const fsSync = require("fs");
+    if (!fsSync.existsSync(mergedDir)) {
+      fsSync.mkdirSync(mergedDir, { recursive: true });
+    }
     const outputPath = path.join(mergedDir, outputName);
 
     await fs.writeFile(outputPath, mergedBytes);
