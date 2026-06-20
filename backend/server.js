@@ -6,7 +6,7 @@ const fs = require("fs");
 const mergeRoutes = require("./routes/merge");
 
 const app = express();
-const PORT = 5000;
+const PORT = 4000;
 
 // ---------------------------------------------------------------------------
 // Ensure required directories exist on startup
