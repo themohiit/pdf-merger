@@ -1,5 +1,11 @@
 import axios from 'axios';
 
+const API_BASE = import.meta.env.PROD 
+  ? 'https://pdf-merger-5wbq.onrender.com' 
+  : '';
+
+axios.defaults.baseURL = API_BASE;
+
 /**
  * Sends files to the backend for merging.
  * @param {File[]} files - Array of PDF File objects in desired merge order
@@ -29,7 +35,11 @@ export const mergePDFs = async (files, onProgress) => {
       },
     });
 
-    return response.data;
+    const data = response.data;
+    if (data && data.downloadUrl && API_BASE) {
+      data.downloadUrl = `${API_BASE}${data.downloadUrl}`;
+    }
+    return data;
   } catch (error) {
     const message =
       error.response?.data?.error ||
@@ -38,3 +48,4 @@ export const mergePDFs = async (files, onProgress) => {
     throw new Error(message);
   }
 };
+
