@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.PROD 
-  ? 'https://pdf-merger-5wbq.onrender.com' 
-  : '';
+const API_BASE = '';
 
 axios.defaults.baseURL = API_BASE;
 

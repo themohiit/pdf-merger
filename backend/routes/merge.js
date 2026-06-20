@@ -2,16 +2,22 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs/promises");
+const os = require("os");
 const { PDFDocument } = require("pdf-lib");
 const { v4: uuidv4 } = require("uuid");
 
 const router = express.Router();
 
+const uploadsDir = path.join(os.tmpdir(), "pdf-merger-uploads");
+const mergedDir = path.join(os.tmpdir(), "pdf-merger-merged");
+
 // ---------------------------------------------------------------------------
 // Multer configuration – disk storage, 50 MB limit, PDF-only filter
 // ---------------------------------------------------------------------------
 const storage = multer.diskStorage({
-  destination: path.join(__dirname, "..", "uploads"),
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
   filename: (_req, file, cb) => {
     // Prefix with timestamp + uuid fragment to avoid collisions
     const uniqueName = `${Date.now()}-${uuidv4().slice(0, 8)}-${file.originalname}`;
@@ -135,7 +141,7 @@ router.post("/merge", upload.array("files", 20), async (req, res, next) => {
     // ----- Save merged PDF -----------------------------------------------
     const mergedBytes = await mergedPdf.save();
     const outputName = `${uuidv4()}.pdf`;
-    const outputPath = path.join(__dirname, "..", "merged", outputName);
+    const outputPath = path.join(mergedDir, outputName);
 
     await fs.writeFile(outputPath, mergedBytes);
 

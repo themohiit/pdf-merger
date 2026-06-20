@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 
 const mergeRoutes = require("./routes/merge");
 
@@ -9,10 +10,10 @@ const app = express();
 const PORT = 4000;
 
 // ---------------------------------------------------------------------------
-// Ensure required directories exist on startup
+// Ensure required directories exist on startup (using temp directory for Vercel/serverless support)
 // ---------------------------------------------------------------------------
-const uploadsDir = path.join(__dirname, "uploads");
-const mergedDir = path.join(__dirname, "merged");
+const uploadsDir = path.join(os.tmpdir(), "pdf-merger-uploads");
+const mergedDir = path.join(os.tmpdir(), "pdf-merger-merged");
 
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 if (!fs.existsSync(mergedDir)) fs.mkdirSync(mergedDir, { recursive: true });
@@ -51,8 +52,12 @@ app.use((err, _req, res, _next) => {
 });
 
 // ---------------------------------------------------------------------------
-// Start server
+// Start server (only if not running as a Vercel serverless function)
 // ---------------------------------------------------------------------------
-app.listen(PORT, () => {
-  console.log(`PDF Merger backend running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`PDF Merger backend running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
