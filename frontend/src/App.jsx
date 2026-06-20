@@ -146,8 +146,35 @@ export default function App() {
         </main>
 
         {/* Footer */}
-        <footer className="mt-16 text-center">
-          <p className="text-xs text-surface-700">
+        <footer className="mt-16 pt-8 border-t border-white/5 text-center space-y-6">
+          <div>
+            <a
+              href="https://digitalheroesco.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold
+                         text-white bg-gradient-to-r from-primary-600 to-purple-600 hover:from-primary-500 hover:to-purple-500
+                         shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 hover:-translate-y-0.5
+                         transition-all duration-200"
+            >
+              Built for Digital Heroes
+            </a>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-surface-300 max-w-lg mx-auto px-4">
+            <div className="flex items-center gap-1.5">
+              <span>Creator:</span>
+              <span className="font-semibold text-white">Mohit Singh</span>
+            </div>
+            <a
+              href="mailto:mohitchauhan6585@gmail.com"
+              className="hover:text-primary-400 transition-colors underline decoration-white/10 hover:decoration-primary-400"
+            >
+              mohitchauhan6585@gmail.com
+            </a>
+          </div>
+
+          <p className="text-[10px] text-surface-700">
             Your files are processed securely and never stored permanently.
           </p>
         </footer>
