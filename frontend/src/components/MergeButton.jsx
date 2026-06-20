@@ -48,16 +48,32 @@ export default function MergeButton({ files, onMergeComplete, onError }) {
 
   /** Download the merged PDF with the custom filename */
   const handleDownload = useCallback(() => {
-    if (!result?.downloadUrl) return;
+    if (!result?.pdf) return;
 
-    const link = document.createElement('a');
-    link.href = result.downloadUrl;
-    // Use custom filename, ensuring it ends with .pdf
-    const downloadName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
-    link.download = downloadName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const binaryString = atob(result.pdf);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const downloadName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+      link.download = downloadName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Revoke the object URL after a short delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (e) {
+      console.error('Error downloading file:', e);
+    }
   }, [result, filename]);
 
   /** Reset to try again */

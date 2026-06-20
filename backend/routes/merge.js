@@ -14,20 +14,7 @@ const mergedDir = path.join(os.tmpdir(), "pdf-merger-merged");
 // ---------------------------------------------------------------------------
 // Multer configuration – disk storage, 50 MB limit, PDF-only filter
 // ---------------------------------------------------------------------------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const fsSync = require("fs");
-    if (!fsSync.existsSync(uploadsDir)) {
-      fsSync.mkdirSync(uploadsDir, { recursive: true });
-    }
-    cb(null, uploadsDir);
-  },
-  filename: (_req, file, cb) => {
-    // Prefix with timestamp + uuid fragment to avoid collisions
-    const uniqueName = `${Date.now()}-${uuidv4().slice(0, 8)}-${file.originalname}`;
-    cb(null, uniqueName);
-  },
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -42,27 +29,14 @@ const upload = multer({
 });
 
 // ---------------------------------------------------------------------------
-// Helper – delete an array of file paths (best-effort, never throws)
-// ---------------------------------------------------------------------------
-async function cleanUpFiles(filePaths) {
-  await Promise.allSettled(
-    filePaths.map((fp) => fs.unlink(fp).catch(() => {}))
-  );
-}
-
-// ---------------------------------------------------------------------------
 // POST /api/merge
 // Accepts up to 20 PDF files via the "files" field and an optional "order"
 // field (JSON array of indices) that controls the merge sequence.
 // ---------------------------------------------------------------------------
 router.post("/merge", upload.array("files", 20), async (req, res, next) => {
-  // Collect uploaded file paths so we can clean up no matter what happens
-  const uploadedPaths = (req.files || []).map((f) => f.path);
-
   try {
     // ----- Validation --------------------------------------------------
     if (!req.files || req.files.length < 2) {
-      await cleanUpFiles(uploadedPaths);
       return res.status(400).json({
         success: false,
         error: "At least 2 PDF files are required for merging.",
@@ -72,7 +46,6 @@ router.post("/merge", upload.array("files", 20), async (req, res, next) => {
     // Double-check MIME types (belt-and-suspenders alongside the fileFilter)
     const nonPdf = req.files.filter((f) => f.mimetype !== "application/pdf");
     if (nonPdf.length > 0) {
-      await cleanUpFiles(uploadedPaths);
       return res.status(400).json({
         success: false,
         error: `Non-PDF files detected: ${nonPdf.map((f) => f.originalname).join(", ")}`,
@@ -82,12 +55,10 @@ router.post("/merge", upload.array("files", 20), async (req, res, next) => {
     // ----- Determine merge order ----------------------------------------
     let order;
     if (req.body.order) {
-      // order may arrive as a JSON string or as an array (depending on client)
       order = typeof req.body.order === "string"
         ? JSON.parse(req.body.order)
         : req.body.order;
     } else {
-      // Default: use the upload order (0, 1, 2, …)
       order = req.files.map((_, i) => i);
     }
 
@@ -104,9 +75,8 @@ router.post("/merge", upload.array("files", 20), async (req, res, next) => {
       }
 
       try {
-        const pdfBytes = await fs.readFile(file.path);
+        const pdfBytes = file.buffer;
         const srcDoc = await PDFDocument.load(pdfBytes, {
-          // Attempt to repair minor issues; skip truly broken files below
           ignoreEncryption: true,
         });
 
@@ -120,7 +90,6 @@ router.post("/merge", upload.array("files", 20), async (req, res, next) => {
           totalPages++;
         }
       } catch (pdfErr) {
-        // File is corrupted or unreadable – skip it and continue
         console.warn(
           `Skipping "${file.originalname}" (index ${idx}): ${pdfErr.message}`
         );
@@ -132,9 +101,7 @@ router.post("/merge", upload.array("files", 20), async (req, res, next) => {
       }
     }
 
-    // If every file was bad we have nothing to return
     if (totalPages === 0) {
-      await cleanUpFiles(uploadedPaths);
       return res.status(400).json({
         success: false,
         error: "No pages could be extracted. All files may be corrupted.",
@@ -142,50 +109,24 @@ router.post("/merge", upload.array("files", 20), async (req, res, next) => {
       });
     }
 
-    // ----- Save merged PDF -----------------------------------------------
+    // ----- Save merged PDF and encode as Base64 ---------------------------
     const mergedBytes = await mergedPdf.save();
-    const outputName = `${uuidv4()}.pdf`;
-    const fsSync = require("fs");
-    if (!fsSync.existsSync(mergedDir)) {
-      fsSync.mkdirSync(mergedDir, { recursive: true });
-    }
-    const outputPath = path.join(mergedDir, outputName);
-
-    await fs.writeFile(outputPath, mergedBytes);
-
-    // ----- Clean up uploaded files ----------------------------------------
-    await cleanUpFiles(uploadedPaths);
-
-    // ----- Schedule automatic deletion of merged file after 10 minutes ----
-    const TEN_MINUTES = 10 * 60 * 1000;
-    setTimeout(async () => {
-      try {
-        await fs.unlink(outputPath);
-        console.log(`Auto-deleted merged file: ${outputName}`);
-      } catch {
-        // File may have already been deleted manually – ignore
-      }
-    }, TEN_MINUTES);
+    const base64Pdf = Buffer.from(mergedBytes).toString("base64");
 
     // ----- Respond -------------------------------------------------------
     const response = {
       success: true,
-      downloadUrl: `/downloads/${outputName}`,
+      pdf: base64Pdf,
       pageCount: totalPages,
       fileCount: order.length - skippedFiles.length,
     };
 
-    // Include skipped files info only when relevant
     if (skippedFiles.length > 0) {
       response.skippedFiles = skippedFiles;
     }
 
     return res.json(response);
   } catch (err) {
-    // Unexpected error – clean up and forward to global handler
-    await cleanUpFiles(uploadedPaths);
-
-    // Multer errors (file too large, too many files, etc.)
     if (err instanceof multer.MulterError) {
       return res.status(400).json({ success: false, error: err.message });
     }

@@ -33,16 +33,21 @@ export const mergePDFs = async (files, onProgress) => {
       },
     });
 
-    const data = response.data;
-    if (data && data.downloadUrl && API_BASE) {
-      data.downloadUrl = `${API_BASE}${data.downloadUrl}`;
-    }
-    return data;
+    return response.data;
   } catch (error) {
-    const message =
-      error.response?.data?.error ||
-      error.message ||
-      'Failed to merge PDFs. Please try again.';
+    let message = 'Failed to merge PDFs. Please try again.';
+    if (error.response?.data) {
+      const serverError = error.response.data.error;
+      if (typeof serverError === 'string') {
+        message = serverError;
+      } else if (serverError && typeof serverError === 'object') {
+        message = serverError.message || JSON.stringify(serverError);
+      } else if (error.response.data.message) {
+        message = error.response.data.message;
+      }
+    } else if (error.message) {
+      message = error.message;
+    }
     throw new Error(message);
   }
 };
